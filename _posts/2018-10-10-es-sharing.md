@@ -1,13 +1,13 @@
 ---
 layout: default
 title: "es 分享"
-tags: tag3
+tags: document
 ---
-期末串讲-ES v1     蔡堃
+#  期末串讲-ES v1     蔡堃
 
-蹭蹭：
+## 蹭蹭：
 
-几个重要网站
+## 几个重要网站
 
 仅供参考的中文文档：
 https://www.elastic.co/guide/cn/elasticsearch/guide/current/index.html
@@ -27,7 +27,7 @@ https://zhuanlan.zhihu.com/Elasticsearch?utm_source=com.alibaba.android.rimet&ut
 
 
 
-es版本
+## es版本
 
  现在6.x，以5.x为例，5.1以前文档仅存在参考意义，中文文档2.x
 
@@ -49,9 +49,10 @@ http://{ip}:9200/{index}/{type}/{docId}/{operation}
 
 ============== es的大门 ===================================
 
-大门：
+# 大门：
 
-Es常用字段类型
+## Es常用字段类型  
+
 Core datatypes
 string 过时
 text and keyword
@@ -79,7 +80,7 @@ Nested datatype
 nested for arrays of JSON objects
 https://blog.csdn.net/napoay/article/details/73100110?utm_source=copy
 
-分词
+## 分词
 http://192.168.2.1:9200/5af3e411cff47e1151f2bf8c_module_data_5afe8e5e4cedfd28c5429a76/_analyze?text=抢的&analyzer=pinyin
 
 
@@ -92,7 +93,7 @@ term不分词≈match_phase
 
 filter：
 
-多字段
+## 多字段
 
 
                 "key2555": {
@@ -133,7 +134,7 @@ filter：
                             }
 
 
-reindex和alias
+## reindex和alias
 建立A_INST index和别名A，系统使用别名操作；
 建立A_INST_COPY,更新类型，填入数据from A；
 删除A_INST
@@ -143,9 +144,9 @@ reindex和alias
 自己看
 ================== 你可以独立使用ES了 ============
 
-二楼雅座：
+# 二楼雅座：
 
-Es 分析器（analyzer）、分词器（tokenizer）和过滤器（filter）,以及ngram
+## Es 分析器（analyzer）、分词器（tokenizer）和过滤器（filter）,以及ngram
 Analyzer包含两个核心组件，Tokenizer以及TokenFilter。两者的区别在于，前者在字符级别处理流，而后者则在词语级别处理流。
 Tokenizer是Analyzer的第一步，其构造函数接收一个Reader作为参数，而TokenFilter则是一个类似的拦截器，其参数可以是TokenStream、Tokenizer
 
@@ -165,7 +166,7 @@ Eg：
 * 长度 5（five-gram）： [ quick ]
 
 
-事务、锁机制及多版本并发控制
+## 事务、锁机制及多版本并发控制
 不支持事务；
 
 1.全局锁(利用文档)
@@ -196,16 +197,16 @@ _version默认自增，小于该数报409
 在es后台，有很多类似于replica同步的请求，这些请求都是异步多线程的，对于多个修改请求是乱序的，因此会使用_version乐观锁来控制这种并发的请求处理。当后续的修改请求先到达，对应修改成功之后_version会加1，然后检测到之前的修改到达会直接丢弃掉该请求；而当后续的修改请求按照正常顺序到达则会正常修改然后_version在前一次修改后的基础上加1（此时_version可能就是3，会基于之前修改后的状态）。 
 
 
-Es节点类型
+## Es节点类型
  Master主要管理集群信息、primary分片和replica分片信息、维护index信息。
 DataNode用来存储数据，维护倒排索引，提供数据检索等。
 Client:是作为任务分发用的，它里面也会存元数据，但是它不会对元数据做任何修改。client node存在的好处是可以分担下data node的一部分压力；为什么client node能分担data node的一部分压力？因为es的查询是两层汇聚的结果，第一层是在data node上做查询结果汇聚，然后把结果发给client node，client node接收到data node发来的结果后再做第二次的汇聚，然后把最终的查询结果返回给用户
 
 
-主从分片的动态调整
+## 主从分片的动态调整
 
 
-Es，内存、缓存和硬盘
+## Es，内存、缓存和硬盘
 
 translog日志提供了一个所有还未被flush到磁盘的操作的持久化记录。当ES启动的时候，它会使用最新的commit point从磁盘恢复所有已有的segments，然后将重现所有在translog里面的操作来添加更新，这些更新发生在最新的一次commit的记录之后还未被fsync
 索引之segment memory：
@@ -230,11 +231,11 @@ ES通过在后台merge这些segment的方式解决这个问题。小的segment m
 
 
 
-课后习题（家长签字）：
+## 课后习题（家长签字）：
 
 1.aggregation，buckets，metrics
 
-孩子们的问题
+## 孩子们的问题
 
 1.
 
