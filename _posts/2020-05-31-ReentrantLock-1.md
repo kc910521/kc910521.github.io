@@ -1,26 +1,29 @@
 ---
 layout: default
-title: "ReentrantLock的设计不是偶然（一）"
-tags: document
+title: "ReentrantLock（一）"
+tags: 设计不是偶然
 ---
 
-# ReentrantLock 讲义
+# ReentrantLock的设计不是偶然（一）
 
 本文基于JAVA 1.8.0_181
 
 2020-04         Chunk
 
-
-
-# ReentrantLock的设计不是偶然（一）
-
+目录
 * [一、ReentrantLock 总结构概览](#Headings)
+* [二、AQS 的结构](#SAQS)
+    * [0.菜狗子制作的锁](#2-1)
+    * [1.为什么锁的标识 state 不能是布尔类型？](#2-2)
+    * [2.为什么需要锁的等待队列？](#2-3)
+    * [3.如何将元素加入等待队列?](#2-4)
+* [三、总结](#CONCLUSION)
 
 
 
 
 
-# <a name="Headings"></a>一、ReentrantLock 总结构概览
+## <a name="Headings"></a>一、ReentrantLock 总结构概览
 
 Lock接口声明了四种加锁方式和一种解锁方式；
 ReentrantLock 实现了 Lock 接口，同时持有Sync类型的成员变量；
@@ -46,11 +49,11 @@ Sync 其作用在于封装，尤其注意其中 nonfairTryAcquire 方法，会�
 问得好，往下看：
 
 
-这里，我们要先谈一下：
+这里，我们要先谈一下：  
 
-##二、AQS的结构
+## <a name="SAQS"></a>二、AQS 的结构
 
-###0.菜狗子制作的锁
+###<a name="2-1"></a>0.菜狗子制作的锁
 
 如果你需要手工实现一个锁去让一段业务代码只能同时有一个cpu核心在进行处理，该如何设计呢？ 
 
@@ -65,7 +68,7 @@ Sync 其作用在于封装，尤其注意其中 nonfairTryAcquire 方法，会�
 
 
 
-###1.为什么锁的标识 state 不能是布尔类型？
+###<a name="2-2"></a>1.为什么锁的标识 state 不能是布尔类型？
 
 AQS 中存在一个核心参数，state（int），它标志了当前是否有锁的竞争在发生。  
 对应的就是菜狗子上文说的 state ，但是类型并不是 boolean。 
@@ -88,7 +91,7 @@ AQS 中存在一个核心参数，state（int），它标志了当前是否有�
 第二次上锁会永远等待第一次上锁所对应的解锁，而第一次上锁的解锁因为第二次的上锁等待而不会执行到。  
 最终结果就是死锁。
 
-###2.为什么需要锁的等待队列？
+###<a name="2-3"></a>2.为什么需要锁的等待队列？
 
 根据刚刚菜狗子的描述，当线程A获取到锁，线程 B、C、D再去获取锁时，都会进入死循环，空耗cpu资源。 
 通过延长sleep的睡眠时间解决cpu空转，但是又带了睡眠时间无法确定，造成无法及时执行的问题。
@@ -110,7 +113,7 @@ AQS结构上是一个使用链表实现的队列。
 双端队列在队列的两端都进行入队和出队。
 
 
-###3.如何将元素加入等待队列？
+###<a name="2-4"></a>3.如何将元素加入等待队列？
 
 1.addWaiter： 每个需要竞争锁的线程都会被封装为 Node，通过 CAS 挂到队列的尾节点，
 2.acquireQueued： 判断当前节点的前一个节点的waitStatus状态，是否是'SIGNAL'状态，
@@ -121,7 +124,8 @@ AQS结构上是一个使用链表实现的队列。
 
 我们即便不再看其他代码，你也能想出一个锁的实现思路了。
 
-#### 总结
+## <a name="CONCLUSION"></a>三、总结
+
 
 简单说：使用 AbstractQueuedSynchronizer 中的成员变量 state（int）标识锁状态，
 同时使用一个 先进先出的队列保存等待线程。（CLH锁的变体）  
