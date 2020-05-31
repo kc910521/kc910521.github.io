@@ -19,7 +19,7 @@ tags: classic_design
     * [1.为什么锁的标识 state 不能是布尔类型？](#2-2)
     * [2.为什么需要锁的等待队列？](#2-3)
     * [3.如何将元素加入等待队列?](#2-4)
-* [三、总结](#CONCLUSION)
+* [三、代码速查和小结](#CONCLUSION)
 
 
 
@@ -110,9 +110,18 @@ AQS 中存在一个核心参数，state（int），它标志了当前是否有�
 AQS会将暂时无法取得锁的线程放入队列。AQS 只持有队列的head 和 tail节点，每个节点对应类型为Node，
 但是Node本身持有上个节点对象 prev 和下个节点对象 next，
 所以整个队列也是对AQS透明的，也就是在数据结构的角度可以理解为：
-AQS结构上是一个使用链表实现的队列。
-- 不要错误的认为此结构为双端队列。  
-双端队列在队列的两端都进行入队和出队。
+AQS结构上是一个使用链表实现的队列，
+同时永远有一个thread为空的节点为正在工作的线程节点。    
+[难点-1]  
+AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，而是会告诉当前节点的前驱节点，你的状态为 'SIGNAL'。  
+这是因为：  
+- 头节点可能是当前正在工作的线程，否则就是一个单纯的、常驻的、初始化节点，不管什么情况,头节点的thread永远为空。
+- 加锁是从队尾加，解锁是从队头判断状态获取。  
+所以当前加入的节点去修改自己前驱节点的模式是最科学的。
+
+
+
+最后，针对网上的文章，我不认为此结构为双端队列，双端队列在队列的两端都进行入队和出队。
 
 
 ### <a name="2-4"></a>3.如何将元素加入等待队列？
@@ -126,10 +135,85 @@ AQS结构上是一个使用链表实现的队列。
 
 我们即便不再看其他代码，你也能想出一个锁的实现思路了。
 
-## <a name="CONCLUSION"></a>三、总结
-
+## <a name="CONCLUSION"></a>三、代码速查和小结
 
 简单说：使用 AbstractQueuedSynchronizer 中的成员变量 state（int）标识锁状态，
 同时使用一个 先进先出的队列保存等待线程。（CLH锁的变体）  
+
+
+####1.addWaiter  创建节点
+创建一个节点，并将其以CAS的方式加入等待队列的尾部，
+之前的尾部成为上一个节点，并返回这个节点。
+注意，这个时候节点的waitStatus应当为
+   
+        // from aqs
+        private Node addWaiter(Node mode) {
+            Node node = new Node(Thread.currentThread(), mode);
+            // Try the fast path of enq; backup to full enq on failure
+            Node pred = tail;
+            if (pred != null) {
+                node.prev = pred;
+                if (compareAndSetTail(pred, node)) {
+                    pred.next = node;
+                    return node;
+                }
+            }
+            enq(node);
+            return node;
+        }
+
+####2.acquireQueued 处理队列状态
+
+        //node为上一步新建立的节点
+       final boolean acquireQueued(final Node node, int arg) {
+           boolean failed = true;
+           try {
+               boolean interrupted = false;
+               for (;;) {
+                   final Node p = node.predecessor();
+                   // 前一个节点为头节点，且当前节点能获取到锁
+                   if (p == head && tryAcquire(arg)) {
+                        // 设置当前节点为头节点
+                       setHead(node);
+                       p.next = null; // help GC
+                       failed = false;
+                       return interrupted;
+                   }
+                   // 1。shouldParkAfterFailedAcquire方法  #####
+                   // 先获取当前节点的前驱节点的waitStatus（ws）属性
+                   // 如果前驱节点ws为-1，则直接返回true
+                   // 如果前驱节点ws>0 则跳过且再往上上个节点查找，循环往复（队列被压缩了），最后返回false
+                   // 如果前驱节点ws=0 or PROPAGATE，cas操作赋值前驱节点ws为-1，返回false
+                   // 2。parkAndCheckInterrupt 方法 ######
+                   // 直接调用 LockSupport.park，并返回线程是否中断
+                   // 也就是本方法会使线程进入waiting状态
+                   // 也就是1。当前节点的前驱节点状态为-1  
+                   // 2。当前线程不再wait 且 是中断状态，interrupted=true  
+                   // interrupted状态在这里没卵用，  
+                   // 是为了返回这个状态给本方法调用者用  
+                   if (shouldParkAfterFailedAcquire(p, node) &&
+                       parkAndCheckInterrupt())
+                       interrupted = true;
+               }
+           } finally {
+               if (failed)
+                   cancelAcquire(node);
+           }
+       }
+
+
+#### 3.acquire 对以上方法的调用
+   
+       public final void acquire(int arg) {
+           if (!tryAcquire(arg) &&
+               acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+               // acquireQueued 如果返回中断状态的话， 
+               // 这里会补中断操作
+               selfInterrupt();
+       }
+
+
+
+
 
 #### 下一章我们讲解解锁和唤醒
