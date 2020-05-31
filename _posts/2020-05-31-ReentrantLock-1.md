@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "ReentrantLock（一）"
-tags: classic design
+tags: classic_design
 ---
 
 # ReentrantLock的设计不是偶然（一）
