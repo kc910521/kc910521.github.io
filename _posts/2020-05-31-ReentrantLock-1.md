@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "ReentrantLock的设计不是偶然（一）"
-tags: classic_design
+tags: juc
 ---
 
    
@@ -55,7 +55,7 @@ Sync 其作用在于封装，尤其注意其中 nonfairTryAcquire 方法，会�
 
 ## <a name="SAQS"></a>二、AQS 的结构
 
-### <a name="2-1"></a>0.菜狗子制作的锁
+**<a name="2-1"></a>0.菜狗子制作的锁**
 
 如果你需要手工实现一个锁去让一段业务代码只能同时有一个cpu核心在进行处理，该如何设计呢？ 
 
@@ -70,7 +70,7 @@ Sync 其作用在于封装，尤其注意其中 nonfairTryAcquire 方法，会�
 
 
 
-### <a name="2-2"></a>1.为什么锁的标识 state 不能是布尔类型？
+ **<a name="2-2"></a>1.为什么锁的标识 state 不能是布尔类型？**
 
 AQS 中存在一个核心参数，state（int），它标志了当前是否有锁的竞争在发生。  
 对应的就是菜狗子上文说的 state ，但是类型并不是 boolean。 
@@ -88,12 +88,12 @@ AQS 中存在一个核心参数，state（int），它标志了当前是否有�
 成功的话就等于获取到了锁，从而将当前线程设为独占线程，
 失败则调用acquire方法，尝试添加 等待队列。
 
-- 那么为什么不使用菜狗子说的boolean类型呢？  
+- 综上：  
 如果采用 boolean ，那么当已经获取锁的线程 第二次调用 lock（）方法进行锁的重入时，因为 state 状态是上锁状态，会造成等待获取锁，
 第二次上锁会永远等待第一次上锁所对应的解锁，而第一次上锁的解锁因为第二次的上锁等待而不会执行到。  
 最终结果就是死锁。
 
-### <a name="2-3"></a>2.为什么需要锁的等待队列？
+**<a name="2-3"></a>2.为什么需要锁的等待队列？**
 
 根据刚刚菜狗子的描述，当线程A获取到锁，线程 B、C、D再去获取锁时，都会进入死循环，空耗cpu资源。 
 通过延长sleep的睡眠时间解决cpu空转，但是又带了睡眠时间无法确定，造成无法及时执行的问题。
@@ -112,7 +112,7 @@ AQS会将暂时无法取得锁的线程放入队列。AQS 只持有队列的head
 所以整个队列也是对AQS透明的，也就是在数据结构的角度可以理解为：
 AQS结构上是一个使用链表实现的队列，
 同时永远有一个thread为空的节点为正在工作的线程节点。    
-[难点-1]  
+**[难点-1]**  
 AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，而是会告诉当前节点的前驱节点，你的状态为 'SIGNAL'。  
 这是因为：  
 - 头节点可能是当前正在工作的线程，否则就是一个单纯的、常驻的、初始化节点，不管什么情况,头节点的thread永远为空。
@@ -124,7 +124,7 @@ AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，�
 最后，针对网上的文章，我不认为此结构为双端队列，双端队列在队列的两端都进行入队和出队。
 
 
-### <a name="2-4"></a>3.如何将元素加入等待队列？
+**<a name="2-4"></a>3.如何将元素加入等待队列？**  
 
 1.addWaiter： 每个需要竞争锁的线程都会被封装为 Node，通过 CAS 挂到队列的尾节点，
 2.acquireQueued： 判断当前节点的前一个节点的waitStatus状态，是否是'SIGNAL'状态，
@@ -141,10 +141,10 @@ AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，�
 同时使用一个 先进先出的队列保存等待线程。（CLH锁的变体）  
 
 
-####1.addWaiter  创建节点
+- 1.addWaiter  创建节点
 创建一个节点，并将其以CAS的方式加入等待队列的尾部，
 之前的尾部成为上一个节点，并返回这个节点。
-注意，这个时候节点的waitStatus应当为
+
    
         // from aqs
         private Node addWaiter(Node mode) {
@@ -162,7 +162,8 @@ AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，�
             return node;
         }
 
-####2.acquireQueued 处理队列状态
+- 2.acquireQueued 处理队列状态
+
 
         //node为上一步新建立的节点
        final boolean acquireQueued(final Node node, int arg) {
@@ -202,7 +203,8 @@ AQS在每个节点加入队列时，不会处理自己的 waitStatus 状态，�
        }
 
 
-#### 3.acquire 对以上方法的调用
+- 3.acquire 对以上方法的调用
+
    
        public final void acquire(int arg) {
            if (!tryAcquire(arg) &&

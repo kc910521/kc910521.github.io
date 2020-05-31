@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "ReentrantLock的设计不是偶然（二）"
-tags: classic_design
+tags: juc
 ---
 
    
@@ -30,6 +30,8 @@ tags: classic_design
 
 
     *
+    
+    
         public final boolean release(int arg) {
             // 1。
             if (tryRelease(arg)) {
@@ -54,7 +56,7 @@ tags: classic_design
             setState(c);
             return free;
         } 
-    *
+    
 
 
 ## <a name="h2"></a>二、PARK 和 UNPARK
@@ -73,23 +75,19 @@ tags: classic_design
 ## <a name="h3"></a>三、结语和问题
 
 
-#### 为什么AQS持有队列头尾两个节点，一个不行吗？
-好问题，我们来看一下入等待队列的逻辑：
+- 为什么AQS持有队列头尾两个节点，一个不行吗？  
+因为加锁等待要入队判断，解锁要出队，高频操作空间换时间。
 
-acquireQueued 这个方法的返回值如果为true，则会通知当前线程中断
-
-#为什么运行时不响应中断
+- 为什么运行时不响应中断  
 解锁时中断
 
-#会不会唤醒的同时，被唤醒线程又把自己wait了
+- 会不会唤醒的同时，被唤醒线程又把自己wait了   
 被唤醒永远是2号节点，但是二号节点不参与
 见
 
-#### 独占，共享 实现
-
-## 公平锁和非公平锁
-即 先入队/先加锁 之区分。  
+- 公平锁和非公平锁  
+即 先入队/先加锁 之区分。   
 尝试之前会利用 hasQueuedPredecessors() 方法来判断 AQS 的队列中中是否有其他线程，如果有则不会尝试获取锁(这是公平锁特有的情况)。
 
 
-#### 下次说 ConditionObject
+* 下次说 ConditionObject，独占，共享  
