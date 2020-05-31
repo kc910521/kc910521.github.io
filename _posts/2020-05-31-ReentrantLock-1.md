@@ -1,3 +1,8 @@
+---
+layout: default
+title: "ReentrantLock的设计不是偶然（一）"
+tags: document
+---
 
 # ReentrantLock 讲义
 
@@ -9,7 +14,13 @@
 
 # ReentrantLock的设计不是偶然（一）
 
-##一、ReentrantLock 总结构概览
+* [一、ReentrantLock 总结构概览](#Headings)
+
+
+
+
+
+# <a name="Headings"></a>一、ReentrantLock 总结构概览
 
 Lock接口声明了四种加锁方式和一种解锁方式；
 ReentrantLock 实现了 Lock 接口，同时持有Sync类型的成员变量；
